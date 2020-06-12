@@ -1,12 +1,6 @@
 import * as CryptoJS from "crypto-js";
 
 class Block {
-  public index: number;
-  public hsah: string;
-  public previousHash: string;
-  public data: string;
-  public timestamp: number;
-
   // Block 생성 전 사용을 위해 static 선언
   static calculateBlockHash = (
     index: number,
@@ -15,6 +9,19 @@ class Block {
     data: string
   ): string =>
     CryptoJS.SHA256(index + previousHash + timestamp + data).toString();
+
+  static validateStructure = (aBlock: Block): boolean =>
+    typeof aBlock.index === "number" &&
+    typeof aBlock.hsah === "string" &&
+    typeof aBlock.previousHash === "string" &&
+    typeof aBlock.data === "string" &&
+    typeof aBlock.timestamp === "number";
+
+  public index: number;
+  public hsah: string;
+  public previousHash: string;
+  public data: string;
+  public timestamp: number;
 
   constructor(
     index: number,
@@ -42,25 +49,59 @@ const getLatestBlock = (): Block => getBlockchain()[blockchain.length - 1];
 const getNewTimeStamp = (): number => Math.round(new Date().getTime() / 1000);
 
 const createNewBlock = (data: string): Block => {
-  const previosBlock: Block = getLatestBlock();
-  const newIndex: number = previosBlock.index + 1;
+  const previousBlock: Block = getLatestBlock();
+  const newIndex: number = previousBlock.index + 1;
   const newTimeStamp: number = getNewTimeStamp();
   const newHash: string = Block.calculateBlockHash(
     newIndex,
-    previosBlock.hsah,
+    previousBlock.hsah,
     newTimeStamp,
     data
   );
   const newBlock: Block = new Block(
     newIndex,
     newHash,
-    previosBlock.hsah,
+    previousBlock.hsah,
     data,
     newTimeStamp
   );
+  addBlock(newBlock);
   return newBlock;
 };
 
-console.log(createNewBlock("Hellow"));
+const getHashForBlock = (aBlock: Block): string => {
+  return Block.calculateBlockHash(
+    aBlock.index,
+    aBlock.previousHash,
+    aBlock.timestamp,
+    aBlock.data
+  );
+};
+
+const isBlockValid = (candidateBlock: Block, previousBlock: Block): boolean => {
+  if (!Block.validateStructure(candidateBlock)) {
+    return false;
+  } else if (previousBlock.index + 1 !== candidateBlock.index) {
+    return false;
+  } else if (previousBlock.hsah !== candidateBlock.previousHash) {
+    return false;
+  } else if (getHashForBlock(candidateBlock) !== candidateBlock.hsah) {
+    return false;
+  } else {
+    return true;
+  }
+};
+
+const addBlock = (candidateBlock: Block): void => {
+  if (isBlockValid(candidateBlock, getLatestBlock())) {
+    blockchain.push(candidateBlock);
+  }
+};
+
+createNewBlock("second block");
+createNewBlock("third block");
+createNewBlock("fourth block");
+
+console.log(blockchain);
 
 export {};
